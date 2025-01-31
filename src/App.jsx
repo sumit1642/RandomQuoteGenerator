@@ -1,54 +1,115 @@
 import { useState } from "react"
+import {
+	LinearProgress,
+	TextField,
+	Button,
+	Card,
+	CardContent,
+	Typography,
+} from "@mui/material"
 import "./App.css"
-import { LinearProgress } from "@mui/material"
 
 function App() {
-	const URL = "https://api.breakingbadquotes.xyz/v1/quotes"
-	const [author, setAuthor] = useState("")
-	const [message, setMessage] = useState("")
-	const [isLoading, setIsLoading] = useState(false)
+	const URL = "https://api.breakingbadquotes.xyz/v1/quotes/1"
+	const [quotes, setQuotes] = useState([])
+	const [numQuotes, setNumQuotes] = useState(1)
+	const [loading, setLoading] = useState(false)
 
-	const fetchQuote = async () => {
-		setIsLoading(true)
+	async function getQuotes() {
+		setLoading(true)
+		setQuotes([])
+
 		try {
-			const response = await fetch(URL)
-			const data = await response.json()
-			setMessage(data[0].quote)
-			setAuthor(data[0].author)
+			const requests = []
+
+			for (let index = 0; index < numQuotes; index++) {
+				const request = fetch(URL)
+					.then(function (response) {
+						return response.json()
+					})
+					.then(function (data) {
+						return data[0]
+					})
+				requests.push(request)
+			}
+
+			const newQuotes = await Promise.all(requests)
+			setQuotes(newQuotes)
 		} catch (error) {
-			console.error("Error fetching quote:", error)
+			console.error("Failed to fetch quotes:", error)
 		}
-		setIsLoading(false)
+
+		setLoading(false)
 	}
 
-	let quoteContent
-	if (message) {
-		quoteContent = (
-			<div className="bg-gray-800 p-6 rounded-lg shadow-md text-center max-w-lg">
-				<p className="text-lg italic mb-4">{message}</p>
-				<p className="text-sm font-semibold">- {author}</p>
-			</div>
-		)
-	} else {
-		quoteContent = null
+	function handleInputChange(event) {
+		const value = Number(event.target.value)
+		setNumQuotes(value)
 	}
 
 	return (
-		<div className="flex flex-col items-center justify-center bg-slate-600 h-screen w-screen p-4 text-white">
-			<h1 className="text-3xl font-bold underline mb-6">
-				Random Quote Generator
-			</h1>
+		<div className="quote-container">
+			<Typography
+				variant="h3"
+				className="mb-8 text-white">
+				Quote Generator
+			</Typography>
 
-			{quoteContent}
+			<div className="mb-8">
+				<TextField
+					label="Number of Quotes"
+					type="number"
+					value={numQuotes}
+					onChange={handleInputChange}
+					slotProps={{
+						input: {
+							min: 1,
+							max: 10,
+						},
+					}}
+					sx={{
+						backgroundColor: "white",
+						borderRadius: 1,
+						width: "200px",
+					}}
+				/>
+			</div>
 
-			{isLoading && <LinearProgress className="w-full mt-4" />}
+			{loading && <LinearProgress className="w-full mb-8" />}
 
-			<button
-				className="mt-6 px-6 py-3 text-lg font-semibold bg-blue-500 rounded-lg hover:bg-blue-600 transition disabled:opacity-50"
-				onClick={fetchQuote}
-				disabled={isLoading}>
-				{isLoading ? "Loading..." : "Generate Quote"}
-			</button>
+			<div className="quote-grid">
+				{quotes.map(function (quote, index) {
+					return (
+						<Card
+							key={index}
+							sx={{
+								backgroundColor: "#333",
+								color: "white",
+							}}>
+							<CardContent>
+								<Typography
+									variant="body1"
+									className="mb-4 italic">
+									&ldquo;{quote.quote}&rdquo;
+								</Typography>
+								<Typography
+									variant="subtitle2"
+									color="primary">
+									- {quote.author}
+								</Typography>
+							</CardContent>
+						</Card>
+					)
+				})}
+			</div>
+
+			<Button
+				variant="contained"
+				onClick={getQuotes}
+				disabled={loading}
+				className="mt-8 px-8 py-2">
+				{loading ? "Loading..." : "Get Quotes"}
+			</Button>
 		</div>
 	)
 }
